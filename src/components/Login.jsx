@@ -31,12 +31,12 @@ export default function Login() {
             <input
               type="email"
               placeholder="Email"
-              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/30 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-md transition"
+              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
             />
             <input
               type="password"
               placeholder="Password"
-              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/30 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-md transition"
+              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
             />
             <button
               type="button"
