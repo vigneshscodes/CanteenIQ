@@ -1,11 +1,23 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/logofinalbg0.png";
 import LoginBG from "../assets/loginbgtemp.png";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Get role from LandingPage
+  const role = location.state?.role;
+
+  useEffect(() => {
+    if (role === "management") {
+      setError("Management accounts cannot sign up. Please contact admin.");
+    }
+  }, [role]);
 
   return (
     <div
@@ -22,52 +34,63 @@ export default function Signup() {
       >
         {/* Left side - Signup Form */}
         <div className="w-1/2 bg-[#dbd9d5]/95 p-10 flex flex-col justify-center shadow-inner">
-          <h1 className="text-3xl font-bold text-[#56473a] mb-6 tracking-wide">Sign Up</h1>
-          <form className="space-y-5">
-            <input
-              type="text"
-              placeholder="Full Name"
-              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
-            />
-            <input
-              type="text"
-              placeholder="Contact Number"
-              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
-            />
-            <div className="relative">
+          <h1 className="text-3xl font-bold text-[#56473a] mb-6 tracking-wide">
+            Sign Up
+          </h1>
+
+          {error ? (
+            <div className="text-red-600 font-medium bg-red-100 p-3 rounded-lg shadow-md text-center">
+              {error}
+            </div>
+          ) : (
+            <form className="space-y-5">
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Set Password"
-                className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg  transition"
+                type="text"
+                placeholder="Full Name"
+                className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
               />
+              <input
+                type="text"
+                placeholder="Contact Number"
+                className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
+              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Set Password"
+                  className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#56473a]"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#56473a]"
+                className="w-full py-3 rounded-full bg-[#199b74] text-[#dbd9d5] font-semibold hover:bg-[#56473a] transition-all duration-300 shadow-lg"
               >
-                {showPassword ? (
-                  <EyeSlashIcon className="h-5 w-5" />
-                ) : (
-                  <EyeIcon className="h-5 w-5" />
-                )}
+                Sign Up
               </button>
-            </div>
-            <button
-              type="button"
-              className="w-full py-3 rounded-full bg-[#199b74] text-[#dbd9d5] font-semibold hover:bg-[#56473a] transition-all duration-300 shadow-lg"
-            >
-              Sign Up
-            </button>
-          </form>
+            </form>
+          )}
+
           <p className="mt-6 text-[#56473a] text-sm">
             Already have an account?{" "}
             <Link
               to="/login"
+              state={{ role }}
               className="font-semibold text-[#199b74] hover:text-[#56473a] transition-colors"
             >
               Login
