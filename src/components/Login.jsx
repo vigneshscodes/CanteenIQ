@@ -16,15 +16,7 @@ export default function Login() {
       alert("Management login successful (frontend only demo).");
       // navigate("/management/dashboard");  // example next step
     } else {
-      alert("User login successful (frontend only demo).");
-      // navigate("/user/dashboard");
-    }
-  };
-
-  const handleSignupClick = (e) => {
-    if (role === "management") {
-      e.preventDefault();
-      setError("Management cannot sign up. Only users can create accounts.");
+      navigate("/user1");
     }
   };
 
@@ -57,7 +49,7 @@ export default function Login() {
         {/* Right side - Login Form */}
         <div className="w-1/2 bg-[#dbd9d5]/90 p-10 flex flex-col justify-center shadow-inner relative">
           <h1 className="text-3xl font-bold text-[#56473a] mb-2 tracking-wide">
-            {role === "management" ? "Management Login" : "User Login"}
+            {role === "management" ? "Management Login" : "Login"}
           </h1>
           <p className="text-sm text-[#56473a]/80 mb-6">
             {role === "management"
@@ -89,21 +81,17 @@ export default function Login() {
           {error && (
             <p className="mt-4 text-red-600 font-medium text-sm">{error}</p>
           )}
-
-          <p className="mt-6 text-[#56473a] text-sm">
-            Don’t have an account?{" "}
-            <Link
-              to="/signup"
-              onClick={handleSignupClick}
-              className={`font-semibold ${
-                role === "management"
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-[#199b74] hover:text-[#56473a]"
-              } transition-colors`}
-            >
-              Sign Up
-            </Link>
-          </p>
+          {role !== "management" && (
+            <p className="mt-6 text-[#56473a] text-sm">
+              Don’t have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-semibold text-[#199b74] hover:text-[#56473a] transition-colors"
+              >
+                Sign Up
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>
