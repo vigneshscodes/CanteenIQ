@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/logofinalbg0.png";
 import LoginBG from "../assets/loginbgtemp.png";
-
 export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -13,7 +12,7 @@ export default function Login() {
     setError(""); // reset error first
     if (role === "management") {
       // only allow login (not signup)
-      alert("Management login successful (frontend only demo).");
+      navigate("/management");
       // navigate("/management/dashboard");  // example next step
     } else {
       navigate("/user1");
