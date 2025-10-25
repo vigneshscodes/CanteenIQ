@@ -39,47 +39,56 @@ export default function User1() {
 
   const [cartItems, setCartItems] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [showQtyModal, setShowQtyModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
-  // Search
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredItems, setFilteredItems] = useState(items);
 
-  // Modals
   const [showDineModal, setShowDineModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedType, setSelectedType] = useState("");
 
+  // Search
   const handleSearch = () => {
     const query = searchTerm.toLowerCase().trim();
     if (query === "") setFilteredItems(items);
     else {
-      const result = items.filter((item) =>
-        item.name.toLowerCase().includes(query)
+      setFilteredItems(
+        items.filter((item) => item.name.toLowerCase().includes(query))
       );
-      setFilteredItems(result);
     }
   };
 
-  const addToCart = (item) => setCartItems([...cartItems, item]);
+  // Confirm adding item with quantity
+  const confirmAddToCart = () => {
+    if (!selectedItem) return;
+    const itemWithQty = { ...selectedItem, quantity };
+    setCartItems([...cartItems, itemWithQty]);
+    setShowQtyModal(false);
+  };
+
   const removeFromCart = (id) =>
     setCartItems(cartItems.filter((item) => item.id !== id));
 
-  // Step 1: Trigger dine-in/parcel modal on checkout
+  // Checkout & Payment
   const checkout = () => {
     if (cartItems.length === 0) return;
     setShowDineModal(true);
   };
 
-  // Step 2: Store type and open payment popup
   const handleDineSelection = (type) => {
     setSelectedType(type);
     setShowDineModal(false);
     setShowPaymentModal(true);
   };
 
-  // Step 3: Confirm payment and create order
   const confirmPayment = () => {
-    const total = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const total = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
     const newOrder = {
       id: `ORD${Math.floor(Math.random() * 1000)}`,
       details: `${cartItems.length} Items • ₹${total}`,
@@ -91,14 +100,7 @@ export default function User1() {
     alert(`Order placed successfully! (${selectedType})`);
   };
 
-  const Card = ({
-    item,
-    buttonLabel,
-    buttonColor,
-    buttonHover,
-    showPrice = true,
-    onClick,
-  }) => (
+  const Card = ({ item, buttonLabel, buttonColor, buttonHover, showPrice = true, onClick }) => (
     <div className="flex-shrink-0 bg-[#e5b141]/30 border border-[#b94419]/20 rounded-2xl p-4 w-52 text-center shadow-lg transform hover:scale-95 transition-transform duration-200">
       <img
         src={item.img}
@@ -171,7 +173,11 @@ export default function User1() {
                   buttonLabel="Add to Cart"
                   buttonColor="bg-[#199b74]"
                   buttonHover="bg-[#b94419]"
-                  onClick={() => addToCart(item)}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setQuantity(1);
+                    setShowQtyModal(true);
+                  }}
                 />
               ))}
             </div>
@@ -179,7 +185,7 @@ export default function User1() {
         )}
       </section>
 
-        {/* Section: Best Selling */}
+      {/* Section: Best Selling */}
       <section id="best" className="px-10 py-8 bg-[#e5b141]/20">
         <h2 className="text-2xl font-bold text-[#56473a] mb-4">Best Selling</h2>
         <div className="flex overflow-x-auto gap-6 pb-4 no-scrollbar">
@@ -191,7 +197,11 @@ export default function User1() {
                 buttonLabel="Add to Cart"
                 buttonColor="bg-[#199b74]"
                 buttonHover="bg-[#b94419]"
-                onClick={() => addToCart(item)}
+                onClick={() => {
+                  setSelectedItem(item);
+                  setQuantity(1);
+                  setShowQtyModal(true);
+                }}
               />
             ))}
           </div>
@@ -200,9 +210,7 @@ export default function User1() {
 
       {/* Section: Previous Orders */}
       <section id="previous" className="px-10 py-8">
-        <h2 className="text-2xl font-bold text-[#56473a] mb-4">
-          Previous Orders
-        </h2>
+        <h2 className="text-2xl font-bold text-[#56473a] mb-4">Previous Orders</h2>
         <div className="flex overflow-x-auto gap-6 pb-4 no-scrollbar">
           <div className="flex gap-6 overflow-visible">
             {items.slice(2, 7).map((item) => (
@@ -211,28 +219,24 @@ export default function User1() {
           </div>
         </div>
       </section>
-      
+
       {/* Section: Cart */}
       <section id="cart" className="px-10 py-8 bg-[#e5b141]/20">
         <h2 className="text-2xl font-bold text-[#56473a] mb-4">Your Cart</h2>
         <div className="flex flex-col gap-4">
-          {cartItems.length === 0 && (
-            <p className="text-[#56473a]/70">Cart is empty</p>
-          )}
-          {cartItems.map((item) => (
+          {cartItems.length === 0 && <p className="text-[#56473a]/70">Cart is empty</p>}
+          {cartItems.map((item, idx) => (
             <div
-              key={item.id}
+              key={idx}
               className="bg-[#dbd9d5] border border-[#b94419]/30 rounded-2xl p-5 flex justify-between items-center shadow-lg hover:bg-[#e5b141]/30 transition"
             >
               <div className="flex items-center gap-4">
-                <img
-                  src={item.img}
-                  alt={item.name}
-                  className="w-20 h-20 object-cover rounded-xl"
-                />
+                <img src={item.img} alt={item.name} className="w-20 h-20 object-cover rounded-xl" />
                 <div>
                   <h3 className="font-bold text-[#56473a]">{item.name}</h3>
-                  <p className="text-[#199b74] font-bold">₹{item.price}</p>
+                  <p className="text-[#199b74] font-bold">
+                    ₹{item.price} x {item.quantity} = ₹{item.price * item.quantity}
+                  </p>
                 </div>
               </div>
               <button
@@ -246,7 +250,7 @@ export default function User1() {
           {cartItems.length > 0 && (
             <div className="mt-4 flex justify-end gap-4 items-center">
               <p className="font-bold text-[#56473a]">
-                Total: ₹{cartItems.reduce((sum, item) => sum + item.price, 0)}
+                Total: ₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)}
               </p>
               <button
                 onClick={checkout}
@@ -261,21 +265,15 @@ export default function User1() {
 
       {/* Section: Orders to Pick */}
       <section id="current" className="px-10 py-8">
-        <h2 className="text-2xl font-bold text-[#56473a] mb-4">
-          Orders to Pick
-        </h2>
+        <h2 className="text-2xl font-bold text-[#56473a] mb-4">Orders to Pick</h2>
         <div className="flex flex-wrap gap-6 justify-center">
           {orders.map((order) => (
             <Link key={order.id} to={`/user2/${order.id}`}>
               <div className="bg-[#dbd9d5] border border-[#b94419]/30 rounded-2xl p-5 w-72 flex justify-between items-center shadow-lg hover:bg-[#e5b141]/30 transition">
                 <div>
-                  <h3 className="font-bold text-[#56473a]">
-                    Order #{order.id}
-                  </h3>
+                  <h3 className="font-bold text-[#56473a]">Order #{order.id}</h3>
                   <p className="text-[#199b74] text-sm">{order.details}</p>
-                  <p className="text-[#56473a]/80 text-xs italic">
-                    {order.type}
-                  </p>
+                  <p className="text-[#56473a]/80 text-xs italic">{order.type}</p>
                 </div>
                 <ArrowRight className="text-[#b94419] w-6 h-6" />
               </div>
@@ -284,7 +282,44 @@ export default function User1() {
         </div>
       </section>
 
-      {/* 🟢 Dine-in / Parcel Modal */}
+      {/* Quantity Modal */}
+      {showQtyModal && selectedItem && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[#dbd9d5] p-6 rounded-2xl shadow-lg text-center w-72 relative">
+            <button
+              onClick={() => setShowQtyModal(false)}
+              className="absolute top-3 right-3 text-[#b94419]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-[#56473a] mb-4">{selectedItem.name}</h3>
+            <p className="mb-4 text-[#56473a]/80">Select Quantity:</p>
+            <div className="flex justify-center items-center gap-4 mb-6">
+              <button
+                onClick={() => setQuantity(qty => Math.max(1, qty - 1))}
+                className="bg-[#b94419] hover:bg-[#199b74] text-[#dbd9d5] px-3 py-1 rounded-full"
+              >
+                -
+              </button>
+              <span className="text-[#56473a] font-bold text-lg">{quantity}</span>
+              <button
+                onClick={() => setQuantity(qty => qty + 1)}
+                className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] px-3 py-1 rounded-full"
+              >
+                +
+              </button>
+            </div>
+            <button
+              onClick={confirmAddToCart}
+              className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] px-6 py-2 rounded-full transition"
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dine-in / Parcel Modal */}
       {showDineModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[#dbd9d5] p-8 rounded-2xl shadow-lg text-center w-80 relative">
@@ -294,9 +329,7 @@ export default function User1() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-xl font-bold text-[#56473a] mb-4">
-              Choose Order Type
-            </h3>
+            <h3 className="text-xl font-bold text-[#56473a] mb-4">Choose Order Type</h3>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => handleDineSelection("Dine-in")}
@@ -315,7 +348,7 @@ export default function User1() {
         </div>
       )}
 
-      {/* 🟢 Payment Modal */}
+      {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[#dbd9d5] p-8 rounded-2xl shadow-lg text-center w-80 relative">
@@ -325,9 +358,7 @@ export default function User1() {
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-xl font-bold text-[#56473a] mb-4">
-              Proceed to Payment
-            </h3>
+            <h3 className="text-xl font-bold text-[#56473a] mb-4">Proceed to Payment</h3>
             <p className="text-[#56473a]/80 mb-4">
               You chose: <span className="font-semibold">{selectedType}</span>
             </p>
