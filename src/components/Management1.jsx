@@ -1,15 +1,7 @@
-// Management1.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "../assets/logofinalbg0.png";
-import { ArrowRight, PlusCircle, Search } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-// Import sample images
-import dosa from "../assets/dosa.jpg";
-import idly from "../assets/idly.jpg";
-import poori from "../assets/poori.jpeg";
-import vegrice from "../assets/vegrice.png";
-import curdrice from "../assets/curdrice.jpg";
 
 export default function Management1() {
   const navigate = useNavigate();
@@ -21,29 +13,62 @@ export default function Management1() {
     { title: "Analytics", id: "analytics" },
   ];
 
-  const [menuItems, setMenuItems] = useState([
-    { id: 1, name: "Dosa", qty: 20, img: dosa },
-    { id: 2, name: "Idly", qty: 15, img: idly },
-    { id: 3, name: "Poori", qty: 25, img: poori },
-    { id: 4, name: "Veg Rice", qty: 30, img: vegrice },
-    { id: 5, name: "Curd Rice", qty: 18, img: curdrice },
-  ]);
-
+  const [menuItems, setMenuItems] = useState([]);
   const [newItem, setNewItem] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleAddItem = () => {
-    if (newItem.trim() !== "") {
-      setMenuItems([
-        ...menuItems,
-        {
-          id: menuItems.length + 1,
+  const defaultImg = "/images/grapejuice.jpeg";
+
+  // Fetch items from DB
+  useEffect(() => {
+    fetch("http://localhost:5000/api/items")
+      .then((res) => res.json())
+      .then((data) => setMenuItems(data))
+      .catch((err) => console.error("Error fetching items:", err));
+  }, []);
+
+  // Update quantity in DB
+  const handleQtyChange = async (id, qty) => {
+    setMenuItems(
+      menuItems.map((item) =>
+        item._id === id ? { ...item, availableQty: qty } : item
+      )
+    );
+
+    try {
+      await fetch(`http://localhost:5000/api/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ availableQty: Number(qty) }),
+      });
+    } catch (err) {
+      console.error("Error updating quantity:", err);
+      alert("Failed to update quantity in DB");
+    }
+  };
+
+  // Add new item to DB
+  const handleAddItem = async () => {
+    if (!newItem.trim()) return;
+
+    try {
+      const res = await fetch("http://localhost:5000/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           name: newItem,
-          qty: 0,
-          img: vegrice, // placeholder
-        },
-      ]);
+          availableQty: 0,
+          imgurl: defaultImg,
+          price: 0,
+        }),
+      });
+
+      const addedItem = await res.json();
+      setMenuItems([...menuItems, addedItem]);
       setNewItem("");
+    } catch (err) {
+      console.error("Error adding item:", err);
+      alert("Failed to add item to DB");
     }
   };
 
@@ -54,7 +79,7 @@ export default function Management1() {
   const Card = ({ item }) => (
     <div className="flex-shrink-0 bg-[#e5b141]/30 border border-[#b94419]/20 rounded-2xl p-4 w-52 text-center shadow-lg hover:scale-95 transition-transform duration-200">
       <img
-        src={item.img}
+        src={item.imgurl || defaultImg}
         alt={item.name}
         draggable="false"
         className="w-full h-32 object-cover rounded-xl mb-3"
@@ -64,17 +89,14 @@ export default function Management1() {
         <input
           type="number"
           min="0"
-          value={item.qty}
-          onChange={(e) =>
-            setMenuItems(
-              menuItems.map((i) =>
-                i.id === item.id ? { ...i, qty: e.target.value } : i
-              )
-            )
-          }
+          value={item.availableQty || 0}
+          onChange={(e) => handleQtyChange(item._id, e.target.value)}
           className="w-20 text-center border border-[#b94419]/50 rounded-lg px-2 py-1 text-[#56473a] bg-[#dbd9d5] focus:border-[#199b74] focus:ring-2 focus:ring-[#199b74]/50 outline-none transition-all duration-200 hover:border-[#199b74] shadow-inner"
         />
       </div>
+      <p className="text-[#199b74] font-semibold mt-2">
+        Available: {item.availableQty || 0}
+      </p>
     </div>
   );
 
@@ -96,12 +118,10 @@ export default function Management1() {
         </nav>
       </header>
 
-      {/* Section: Add to Today's Menu */}
+      {/* Section: Today's Menu */}
       <section id="menu" className="px-10 py-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-[#56473a]">
-            Add Items to Today’s Menu
-          </h2>
+          <h2 className="text-2xl font-bold text-[#56473a]">Add Items to Today’s Menu</h2>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -110,10 +130,7 @@ export default function Management1() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-4 py-2 rounded-full border border-[#b94419]/30 focus:outline-none focus:ring-2 focus:ring-[#199b74]"
             />
-            <button
-              onClick={() => {}}
-              className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] p-2 rounded-full transition"
-            >
+            <button className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] p-2 rounded-full transition">
               <Search className="w-5 h-5" />
             </button>
           </div>
@@ -122,7 +139,7 @@ export default function Management1() {
         <div className="flex overflow-x-auto gap-6 pb-4 no-scrollbar">
           <div className="flex gap-6 overflow-visible">
             {filteredMenu.map((item) => (
-              <Card key={item.id} item={item} />
+              <Card key={item._id} item={item} />
             ))}
 
             {/* Add new item card */}
@@ -146,31 +163,28 @@ export default function Management1() {
       </section>
 
       {/* Section: Best Selling */}
-      <section id="best" className="px-10 py-8 bg-[#e5b141]/20">
-        <h2 className="text-2xl font-bold text-[#56473a] mb-4">
-          Best Selling Items
-        </h2>
-        <div className="flex overflow-x-auto gap-6 pb-4 no-scrollbar">
-          <div className="flex gap-6 overflow-visible">
-            {menuItems.slice(0, 4).map((item) => (
-              <div
-                key={item.id}
-                className="flex-shrink-0 bg-[#dbd9d5] border border-[#b94419]/30 rounded-2xl p-4 w-52 text-center shadow-lg hover:bg-[#e5b141]/30 transition"
-              >
-                <img
-                  src={item.img}
-                  alt={item.name}
-                  className="w-full h-32 object-cover rounded-xl mb-3"
-                />
-                <h3 className="font-bold text-[#56473a]">{item.name}</h3>
-                <p className="text-[#199b74] font-semibold">
-                  {item.qty} available
-                </p>
-              </div>
-            ))}
-          </div>
+<section id="best" className="px-10 py-8 bg-[#e5b141]/20">
+  <h2 className="text-2xl font-bold text-[#56473a] mb-4">
+    Best Selling Items
+  </h2>
+  <div className="flex overflow-x-auto gap-6 pb-4 no-scrollbar">
+    <div className="flex gap-6 overflow-visible">
+      {menuItems.slice(0, 4).map((item) => (
+        <div
+          key={item._id}
+          className="flex-shrink-0 bg-[#dbd9d5] border border-[#b94419]/30 rounded-2xl p-4 w-52 text-center shadow-lg hover:bg-[#e5b141]/30 transition"
+        >
+          <img
+            src={item.imgurl || defaultImg}
+            alt={item.name}
+            className="w-full h-32 object-cover rounded-xl mb-3"
+          />
+          <h3 className="font-bold text-[#56473a]">{item.name}</h3>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* Section: Delivery Management */}
       <section id="delivery" className="px-10 py-8">
@@ -192,7 +206,7 @@ export default function Management1() {
         </h2>
         <div
           onClick={() => navigate("/analytics")}
-          className="max-w-3xl mx-auto bg-[#b94419] hover:bg-[#199b74] text-[#dbd9d5] text-center rounded-3xl py-6 font-bold text-xl shadow-md transition-colors duration-300 cursor-pointer"
+          className="max-w-3xl mx-auto bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] text-center rounded-3xl py-6 font-bold text-xl shadow-md transition-colors duration-300 cursor-pointer"
         >
           See Order History & Analytics →
         </div>

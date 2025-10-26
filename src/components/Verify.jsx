@@ -1,149 +1,108 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import LoginBG from "../assets/loginbgtemp.png";
+import React, { useEffect, useState } from "react";
 
 export default function Verify() {
-  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [enteredOtps, setEnteredOtps] = useState({});
 
-  // Sample orders data
-  const [orders, setOrders] = useState([
-    {
-      id: "101",
-      items: [
-        { name: "Dosa", price: 40 },
-        { name: "Veg Rice", price: 60 },
-      ],
-      total: 100,
-      counter: 3,
-      token: 12,
-      verified: false,
-    },
-    {
-      id: "102",
-      items: [
-        { name: "Idly", price: 30 },
-        { name: "Curd Rice", price: 50 },
-      ],
-      total: 80,
-      counter: 2,
-      token: 8,
-      verified: false,
-    },
-    {
-      id: "103",
-      items: [{ name: "Poori", price: 45 }],
-      total: 45,
-      counter: 1,
-      token: 5,
-      verified: false,
-    },
-  ]);
+  // Fetch pending orders on load
+  useEffect(() => {
+  fetch("http://localhost:5000/api/orders/pending")
+    .then((res) => res.json())
+    .then((data) => {
+      if (Array.isArray(data)) setOrders(data);
+      else setOrders([]); // prevent crash
+    })
+    .catch((err) => {
+      console.error("Error fetching orders:", err);
+      setOrders([]);
+    });
+}, []);
 
-  const [otpInputs, setOtpInputs] = useState({});
 
-  const handleVerify = (orderId) => {
-    const enteredOtp = otpInputs[orderId];
-    if (enteredOtp === "1234") {
-      setOrders(
-        orders.map((o) =>
-          o.id === orderId ? { ...o, verified: true } : o
-        )
-      );
-      alert(`Order #${orderId} verified successfully!`);
-    } else {
-      alert("Invalid OTP. Please try again.");
+  // Handle OTP input
+  const handleOtpChange = (id, value) => {
+    setEnteredOtps((prev) => ({ ...prev, [id]: value }));
+  };
+
+  // Verify order by OTP
+  const verifyOrder = async (orderId) => {
+    const otp = enteredOtps[orderId];
+    if (!otp) {
+      alert("Please enter OTP first!");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/orders/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, otp }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("✅ Order verified successfully!");
+        setOrders((prev) => prev.filter((o) => o._id !== orderId)); // remove verified one
+      } else {
+        alert(`❌ ${data.message}`);
+      }
+    } catch (err) {
+      console.error("Error verifying order:", err);
     }
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#dbd9d5] font-poppins p-10"
-      style={{
-        backgroundImage: `url(${LoginBG})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 bg-[#e5b141]/80 text-[#dbd9d5] px-5 py-2 rounded-full hover:bg-[#b94419] shadow-md transition-colors duration-200"
-      >
-        ← Back
-      </button>
+    <div className="min-h-screen bg-[#e5b141] px-8 py-10 font-poppins">
+      <h2 className="text-3xl font-bold text-[#56473a] mb-6">Verify Orders</h2>
 
-      <h1 className="text-3xl font-bold text-center text-white mb-10">
-        Verify Orders (OTP: 1234)
-      </h1>
-
-      {/* Orders List */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {orders.map((order) => (
-          <div
-            key={order.id}
-            className={`bg-[#e5b141] border border-[#b94419] rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 ${
-              order.verified ? "opacity-75" : ""
-            }`}
-          >
-            <h2 className="text-xl font-bold text-[#56473a] mb-3 text-center">
-              Order #{order.id}
-            </h2>
-
-            <div className="bg-[#dbd9d5] rounded-xl p-3 mb-4 shadow-inner">
-              <h3 className="font-semibold text-[#56473a] mb-1">
-                Items Ordered:
+      {orders.length === 0 ? (
+        <p className="text-gray-500">No pending orders found ✅</p>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {orders.map((order) => (
+            <div
+              key={order._id}
+              className="bg-[#dbd9d5] rounded-2xl shadow-md p-5 border border-[#b94419]/30"
+            >
+              <h3 className="text-xl font-bold text-[#56473a] mb-2">
+                Token #{order.tokenno}
               </h3>
-              <ul className="list-disc list-inside">
-                {order.items.map((item, idx) => (
-                  <li
-                    key={idx}
-                    className="text-[#199b74] font-medium text-sm mb-1"
-                  >
-                    {item.name} - ₹{item.price}
+              <p className="text-sm mb-2">
+                Customer: <span className="font-semibold">{order.userId?.fullname}</span>
+              </p>
+              <p className="text-sm mb-2">
+                Type: <span className="font-semibold">{order.ordertype}</span>
+              </p>
+              <p className="text-sm mb-2">
+                Total: ₹{order.totalamt}
+              </p>
+              <p className="text-sm mb-3 font-semibold">Items:</p>
+              <ul className="text-sm text-[#56473a] mb-4">
+                {order.items.map((it, i) => (
+                  <li key={i}>
+                    {it.name} × {it.quantity}
                   </li>
                 ))}
               </ul>
+
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3"
+                value={enteredOtps[order._id] || ""}
+                onChange={(e) => handleOtpChange(order._id, e.target.value)}
+              />
+
+              <button
+                onClick={() => verifyOrder(order._id)}
+                className="w-full bg-[#b94419] text-white py-2 rounded-xl hover:bg-[#a53a15] transition"
+              >
+                Verify
+              </button>
             </div>
-
-            <p className="font-bold text-[#56473a]">
-              Amount Paid:{" "}
-              <span className="text-[#199b74] font-semibold">
-                ₹{order.total}
-              </span>
-            </p>
-            <p className="font-semibold text-[#56473a]">
-              Counter No: <span className="text-[#b94419]">{order.counter}</span>
-            </p>
-            <p className="font-semibold text-[#56473a]">
-              Token No: <span className="text-[#b94419]">{order.token}</span>
-            </p>
-
-            {!order.verified ? (
-              <div className="mt-4">
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  value={otpInputs[order.id] || ""}
-                  onChange={(e) =>
-                    setOtpInputs({ ...otpInputs, [order.id]: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-[#b94419]/50 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[#199b74]"
-                />
-                <button
-                  onClick={() => handleVerify(order.id)}
-                  className="mt-3 w-full bg-[#199b74] text-[#dbd9d5] py-2 rounded-full hover:bg-[#b94419] font-semibold shadow-md transition-colors duration-200"
-                >
-                  Verify OTP
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 w-full bg-[#199b74]/80 text-[#dbd9d5] py-2 rounded-full text-center font-semibold">
-                OTP Verified
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

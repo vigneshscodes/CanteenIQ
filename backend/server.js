@@ -4,6 +4,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";  
+import Order from "./models/Order.js";
+
 
 dotenv.config();
 
@@ -63,29 +65,6 @@ const itemSchema = new mongoose.Schema({
 });
 const Item = mongoose.model("Item", itemSchema);
 
-// 🧾 ORDERS COLLECTION
-const orderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  orderno: { type: String, required: true, unique: true },
-  items: [
-    {
-      itemid: { type: mongoose.Schema.Types.ObjectId, ref: "Item", required: true },
-      name: String,
-      price: Number,
-      quantity: Number,
-    },
-  ],
-  totalamt: { type: Number, required: true },
-  ordertype: { type: String, enum: ["DineIn", "Parcel"], default: "takeaway" },
-  status: { type: String, enum: ["Pending", "Completed", "Cancelled"], default: "Pending" },
-  tokenno: { type: Number },
-  counterno: { type: String },
-  expectedDelvtime: { type: String },
-  otp: { type: String },
-  createdat: { type: Date, default: Date.now },
-  updatedat: { type: Date, default: Date.now },
-});
-const Order = mongoose.model("Order", orderSchema);
 
 // 💳 TRANSACTIONS COLLECTION
 const transactionSchema = new mongoose.Schema({
@@ -174,10 +153,19 @@ app.get("/api/items", async (req, res) => {
 });
 
 // Add multiple items (for initial setup)
-app.post("/api/items/bulk", async (req, res) => {
+app.post("/api/items", async (req, res) => {
   try {
-    const items = await Item.insertMany(req.body);
-    res.status(201).json({ message: "✅ Items inserted successfully", data: items });
+    const { name, price, availableQty, imgurl } = req.body;
+
+    const newItem = new Item({
+      name,
+      price,
+      availableQty: availableQty || 0,
+      imgurl: imgurl || "/images/grapejuice.jpeg",
+    });
+
+    const savedItem = await newItem.save();
+    res.status(201).json(savedItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -225,6 +213,21 @@ app.post("/api/orders", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+app.get("/api/orders/pending", async (req, res) => {
+  try {
+    const pendingOrders = await Order.find({ status: "Pending" })
+      .populate("userId", "fullname contactnumber")
+      .lean()
+      .sort({ createdAt: -1 });
+
+    console.log("Pending Orders:", pendingOrders); // debug log
+    res.json(Array.isArray(pendingOrders) ? pendingOrders : []);
+  } catch (error) {
+    console.error("Error fetching pending orders:", error);
+    res.status(500).json({ message: "Failed to fetch pending orders" });
+  }
+});
+
 // Express + Mongoose
 app.get("/api/orders/:id", async (req, res) => {
   try {
@@ -248,6 +251,31 @@ app.post("/api/transactions", async (req, res) => {
     res.status(201).json(newTransaction);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+// ✅ Fetch all pending orders (for manager verify page)
+
+
+
+
+// ✅ Verify OTP and complete the order
+app.post("/api/orders/verify", async (req, res) => {
+  try {
+    const { orderId, otp } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    if (order.otp !== otp)
+      return res.status(400).json({ message: "Invalid OTP" });
+
+    order.status = "Completed";
+    await order.save();
+
+    res.json({ message: "Order verified successfully", order });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: error.message });
   }
 });
 
