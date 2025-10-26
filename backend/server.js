@@ -225,6 +225,16 @@ app.post("/api/orders", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+// Express + Mongoose
+app.get("/api/orders/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id); // _id from MongoDB
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 
 /* ---------------- TRANSACTIONS ---------------- */
 app.post("/api/transactions", async (req, res) => {
