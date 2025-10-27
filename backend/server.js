@@ -278,6 +278,59 @@ app.post("/api/orders/verify", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+// ================= ANALYTICS ROUTE =================
+app.get("/api/analytics", async (req, res) => {
+  try {
+    // Get all completed orders
+    const completedOrders = await Order.find().populate("items.itemid");
+
+    // Count total orders & revenue today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todaysOrders = await Order.find({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    const ordersToday = todaysOrders.length;
+    const revenueToday = todaysOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    // Aggregate sold counts per item
+    const itemSales = {};
+    completedOrders.forEach((order) => {
+      order.items.forEach((itemObj) => {
+        const itemName = itemObj.itemId?.name;
+        if (itemName) {
+          itemSales[itemName] = (itemSales[itemName] || 0) + itemObj.quantity;
+        }
+      });
+    });
+
+    // Get current available quantities from Items collection
+    const items = await Item.find();
+    const analyticsData = Object.entries(itemSales).map(([name, sold]) => {
+      const item = items.find((i) => i.name === name);
+      return {
+        name,
+        sold,
+        available: item ? item.availableQty : 0,
+      };
+    });
+
+    res.json({
+      bestSellingData: analyticsData,
+      stats: {
+        ordersToday,
+        revenueToday,
+      },
+    });
+  } catch (error) {
+    console.error("Analytics fetch error:", error);
+    res.status(500).json({ message: "Error fetching analytics data" });
+  }
+});
 
 /* =====================================================
    🟢 START SERVER

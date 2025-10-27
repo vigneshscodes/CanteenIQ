@@ -59,7 +59,7 @@ export default function Management1() {
           name: newItem,
           availableQty: 0,
           imgurl: defaultImg,
-          price: 0,
+          price: 40,
         }),
       });
 
