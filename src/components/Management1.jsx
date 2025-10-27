@@ -10,7 +10,6 @@ export default function Management1() {
     { title: "Today's Menu", id: "menu" },
     { title: "Best Selling", id: "best" },
     { title: "Delivery Management", id: "delivery" },
-    { title: "Analytics", id: "analytics" },
   ];
 
   const [menuItems, setMenuItems] = useState([]);
@@ -200,7 +199,7 @@ export default function Management1() {
       </section>
 
       {/* 🆕 Section: Order History & Analytics */}
-      <section id="analytics" className="px-10 py-8 bg-[#e5b141]/20">
+      {/*<section id="analytics" className="px-10 py-8 bg-[#e5b141]/20">
         <h2 className="text-2xl font-bold text-[#56473a] mb-6 text-center">
           Order History & Analytics
         </h2>
@@ -210,7 +209,7 @@ export default function Management1() {
         >
           See Order History & Analytics →
         </div>
-      </section>
+      </section>*/}
 
       {/* Footer */}
       <footer className="text-center py-4 text-[#56473a]/80 text-sm bg-[#e5b141]/30">
