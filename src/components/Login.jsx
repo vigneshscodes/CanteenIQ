@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/logofinalbg0.png";
 import LoginBG from "../assets/loginbgtemp.png";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import API from "../api";
 
 export default function Login() {
   const location = useLocation();
@@ -23,19 +24,12 @@ export default function Login() {
 
     try {
       // Determine API endpoint based on role
-      const apiUrl =
-        role === "management"
-          ? `${process.env.REACT_APP_API_URL}/api/managers/login`
-          : `${process.env.REACT_APP_API_URL}/api/users/login`;
-      console.log("API URL:", apiUrl);
+      const res = await API.post(
+        role === "management" ? "/managers/login" : "/users/login",
+        { email, password }
+      );
 
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
+      const data = res.data;
 
       if (!res.ok) {
         throw new Error(data.message || "Login failed");
