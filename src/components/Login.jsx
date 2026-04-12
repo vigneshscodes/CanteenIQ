@@ -25,8 +25,8 @@ export default function Login() {
       // Determine API endpoint based on role
       const apiUrl =
         role === "management"
-          ? "${process.env.REACT_APP_API_URL}/managers/login"
-          : "${process.env.REACT_APP_API_URL}/users/login";
+          ? `${process.env.REACT_APP_API_URL}/managers/login`
+          : `${process.env.REACT_APP_API_URL}/users/login`;
 
       const res = await fetch(apiUrl, {
         method: "POST",

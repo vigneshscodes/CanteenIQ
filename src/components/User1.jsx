@@ -38,7 +38,7 @@ export default function User1() {
 
   // Fetch items
   useEffect(() => {
-    fetch("${process.env.REACT_APP_API_URL}/api/items")
+    fetch(`${process.env.REACT_APP_API_URL}/api/items`)
       .then((res) => res.json())
       .then((data) => {
         setItems(data);
@@ -113,7 +113,7 @@ export default function User1() {
         otp: Math.floor(1000 + Math.random() * 9000).toString(),
       };
 
-      const res = await fetch("${process.env.REACT_APP_API_URL}/api/orders", {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
@@ -133,7 +133,7 @@ export default function User1() {
         )
       );
 
-      await fetch("${process.env.REACT_APP_API_URL}/api/transactions", {
+      await fetch(`${process.env.REACT_APP_API_URL}/api/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -20,7 +20,7 @@ export default function Management1() {
 
   // Fetch items from DB
   useEffect(() => {
-    fetch("${process.env.REACT_APP_API_URL}/api/items")
+    fetch(`${process.env.REACT_APP_API_URL}/api/items`)
       .then((res) => res.json())
       .then((data) => setMenuItems(data))
       .catch((err) => console.error("Error fetching items:", err));
@@ -51,7 +51,7 @@ export default function Management1() {
     if (!newItem.trim()) return;
 
     try {
-      const res = await fetch("${process.env.REACT_APP_API_URL}/api/items", {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
