@@ -24,7 +24,7 @@ export default function Analytics() {
 
   // Fetch analytics from backend
   useEffect(() => {
-    fetch("http://localhost:5000/api/analytics")
+    fetch("${process.env.REACT_APP_API_URL}/api/analytics")
       .then((res) => res.json())
       .then((data) => {
         setBestSellingData(data.bestSellingData || []);

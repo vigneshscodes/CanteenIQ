@@ -38,7 +38,7 @@ export default function User1() {
 
   // Fetch items
   useEffect(() => {
-    fetch("http://localhost:5000/api/items")
+    fetch("${process.env.REACT_APP_API_URL}/api/items")
       .then((res) => res.json())
       .then((data) => {
         setItems(data);
@@ -50,7 +50,7 @@ export default function User1() {
   // Fetch orders
   useEffect(() => {
     if (!user) return;
-    fetch(`http://localhost:5000/api/orders?userId=${user._id}`)
+    fetch(`${process.env.REACT_APP_API_URL}/api/orders?userId=${user._id}`)
       .then((res) => res.json())
       .then((data) => setOrders(data))
       .catch((err) => console.error(err));
@@ -113,7 +113,7 @@ export default function User1() {
         otp: Math.floor(1000 + Math.random() * 9000).toString(),
       };
 
-      const res = await fetch("http://localhost:5000/api/orders", {
+      const res = await fetch("${process.env.REACT_APP_API_URL}/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
@@ -123,7 +123,7 @@ export default function User1() {
 
       await Promise.all(
         cartItems.map((item) =>
-          fetch(`http://localhost:5000/api/items/${item._id}`, {
+          fetch(`${process.env.REACT_APP_API_URL}/api/items/${item._id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -133,7 +133,7 @@ export default function User1() {
         )
       );
 
-      await fetch("http://localhost:5000/api/transactions", {
+      await fetch("${process.env.REACT_APP_API_URL}/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
