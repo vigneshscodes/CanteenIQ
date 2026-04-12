@@ -18,10 +18,10 @@ const __dirname = path.dirname(__filename);
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 /* =====================================================
-   ⚙️  DATABASE CONNECTION
+    DATABASE CONNECTION
 ===================================================== */
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/canteeniqDB", {
+  .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -29,7 +29,7 @@ mongoose
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 /* =====================================================
-   📘 SCHEMAS & MODELS
+    SCHEMAS & MODELS
 ===================================================== */
 
 // 🧍 USERS COLLECTION
