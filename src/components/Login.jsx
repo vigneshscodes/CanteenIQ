@@ -27,6 +27,7 @@ export default function Login() {
         role === "management"
           ? `${process.env.REACT_APP_API_URL}/api/managers/login`
           : `${process.env.REACT_APP_API_URL}/api/users/login`;
+      console.log("API URL:", apiUrl);
 
       const res = await fetch(apiUrl, {
         method: "POST",
@@ -117,7 +118,7 @@ export default function Login() {
               Login
             </button>
           </form>
-
+              
           {error && (
             <p className="mt-4 text-red-600 font-medium text-sm">{error}</p>
           )}
