@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
 import Logo from "../assets/logofinalbg0.png";
 import { ArrowRight, Search, X } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export default function User1() {
   let tokenCounter = 1;
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
   const sections = [
     { title: "Items List", id: "items" },
     { title: "Best Selling", id: "best" },
@@ -13,8 +20,10 @@ export default function User1() {
     { title: "Cart", id: "cart" },
     { title: "Orders to Pick", id: "current" },
   ];
+
   const location = useLocation();
   const user = location.state?.user || null;
+
   const [items, setItems] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -27,7 +36,7 @@ export default function User1() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedType, setSelectedType] = useState("");
 
-  // Fetch items from backend
+  // Fetch items
   useEffect(() => {
     fetch("http://localhost:5000/api/items")
       .then((res) => res.json())
@@ -35,40 +44,36 @@ export default function User1() {
         setItems(data);
         setFilteredItems(data);
       })
-      .catch((err) => console.error("Error fetching items:", err));
+      .catch((err) => console.error(err));
   }, []);
 
-  // Fetch previous orders for this user
- useEffect(() => {
-  if (!user) return;
-  fetch(`http://localhost:5000/api/orders?userId=${user._id}`)
-  .then(res => {
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return res.json();
-  })
-  .then(data => setOrders(data))
-  .catch(err => console.error("Error fetching orders:", err));
-}, [user]);
-
+  // Fetch orders
+  useEffect(() => {
+    if (!user) return;
+    fetch(`http://localhost:5000/api/orders?userId=${user._id}`)
+      .then((res) => res.json())
+      .then((data) => setOrders(data))
+      .catch((err) => console.error(err));
+  }, [user]);
 
   // Search
   const handleSearch = () => {
     const query = searchTerm.toLowerCase().trim();
-    if (!query) setFilteredItems(items);
-    else setFilteredItems(items.filter((item) => item.name.toLowerCase().includes(query)));
+    setFilteredItems(
+      !query ? items : items.filter((i) => i.name.toLowerCase().includes(query))
+    );
   };
 
-  // Add to cart
+  // Cart
   const confirmAddToCart = () => {
     if (!selectedItem) return;
-    const itemWithQty = { ...selectedItem, quantity };
-    setCartItems([...cartItems, itemWithQty]);
+    setCartItems([...cartItems, { ...selectedItem, quantity }]);
     setShowQtyModal(false);
   };
 
-  const removeFromCart = (id) => setCartItems(cartItems.filter((item) => item._id !== id));
+  const removeFromCart = (id) =>
+    setCartItems(cartItems.filter((item) => item._id !== id));
 
-  // Checkout
   const checkout = () => {
     if (cartItems.length === 0) return;
     setShowDineModal(true);
@@ -80,110 +85,110 @@ export default function User1() {
     setShowPaymentModal(true);
   };
 
-  // Confirm Payment & Place Order
-const confirmPayment = async () => {
-  const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Place order
+  const confirmPayment = async () => {
+    const total = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
 
-  try {
-    if (!user) return alert("User not found.");
+    try {
+      if (!user) return alert("User not found");
 
-    // Create Order
-    const orderData = {
-  userId: user._id,
-  items: cartItems.map(item => ({
-    itemid: item._id,
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity,
-    imgurl: item.imgurl,
-  })),
-  totalamt: total,
-  ordertype: selectedType, // "DineIn" or "Parcel"
-  status: "Pending",
-  counterno: Math.floor(Math.random() * 5) + 1, // 1 to 5
-  tokenno: tokenCounter++, // sequential
-  expectedDelvtime: new Date(Date.now() + 10*60000), // 10 minutes later
-  otp: Math.floor(1000 + Math.random() * 9000).toString() // 4-digit OTP
-};
-console.log(orderData.items);
+      const orderData = {
+        userId: user._id,
+        items: cartItems.map((item) => ({
+          itemid: item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          imgurl: item.imgurl,
+        })),
+        totalamt: total,
+        ordertype: selectedType,
+        status: "Pending",
+        counterno: Math.floor(Math.random() * 5) + 1,
+        tokenno: tokenCounter++,
+        expectedDelvtime: new Date(Date.now() + 10 * 60000),
+        otp: Math.floor(1000 + Math.random() * 9000).toString(),
+      };
 
-    const res = await fetch("http://localhost:5000/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderData),
-    });
-    const order = await res.json();
-
-    // Reduce item quantities
-    await Promise.all(cartItems.map(item =>
-      fetch(`http://localhost:5000/api/items/${item._id}`, {
-        method: "PUT",
+      const res = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ availableQty: item.availableQty - item.quantity }),
-      })
-    ));
+        body: JSON.stringify(orderData),
+      });
 
-    // Create Transaction
-    await fetch("http://localhost:5000/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderID: order._id,
-        userID: user._id,
-        amount: total,
-      }),
-    });
+      const order = await res.json();
 
-    setOrders([...orders, order]);
-    setCartItems([]);
-    setShowPaymentModal(false);
-    alert("Order placed successfully!");
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong.");
-  }
-};
+      await Promise.all(
+        cartItems.map((item) =>
+          fetch(`http://localhost:5000/api/items/${item._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              availableQty: item.availableQty - item.quantity,
+            }),
+          })
+        )
+      );
 
+      await fetch("http://localhost:5000/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderID: order._id,
+          userID: user._id,
+          amount: total,
+        }),
+      });
 
+      setOrders([...orders, order]);
+      setCartItems([]);
+      setShowPaymentModal(false);
+      alert("Order placed successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error placing order");
+    }
+  };
 
-
-  // Card Component
+  // Card UI
   const Card = ({ item, buttonLabel, buttonColor, buttonHover, showPrice = true, onClick }) => (
-    <div className="flex-shrink-0 bg-[#e5b141]/30 border border-[#b94419]/20 rounded-2xl p-4 w-52 text-center shadow-lg transform hover:scale-95 transition-transform duration-200">
+    <div className="flex-shrink-0 bg-[#e5b141]/30 border border-[#b94419]/20 rounded-2xl p-4 w-52 text-center shadow-lg hover:scale-95 transition">
       {item.imgurl && (
-  <img
-    src={item.imgurl}
-    alt={item.name}
-    className="w-full h-32 object-cover rounded-xl mb-3"
-  />
-)}
-
+        <img src={item.imgurl} alt={item.name} className="w-full h-32 object-cover rounded-xl mb-3" />
+      )}
       <h3 className="font-semibold text-[#56473a]">{item.name}</h3>
       {showPrice && <p className="text-[#199b74] font-bold">₹{item.price}</p>}
-      {item.availableQty > 0 && buttonLabel && (
-        <button
-          onClick={onClick}
-          className={`mt-2 ${buttonColor} text-[#dbd9d5] px-4 py-1 rounded-full hover:${buttonHover} transition`}
-        >
+      {item.availableQty > 0 ? (
+        <button onClick={onClick} className={`mt-2 ${buttonColor} text-white px-4 py-1 rounded-full hover:${buttonHover}`}>
           {buttonLabel}
         </button>
-      )}
-      {item.availableQty === 0 && (
-        <button disabled className="mt-2 bg-gray-400 text-white px-4 py-1 rounded-full cursor-not-allowed">
-          Sold Out
-        </button>
+      ) : (
+        <button disabled className="mt-2 bg-gray-400 text-white px-4 py-1 rounded-full">Sold Out</button>
       )}
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#dbd9d5] font-poppins">
-      {/* Header */}
-      <header className="flex flex-col items-center py-4 bg-[#e5b141] shadow-md">
-        <img src={Logo} alt="CanteenIQ Logo" className="h-20 mb-2" />
-        <nav className="flex flex-wrap justify-center gap-6 text-[#56473a] font-semibold text-lg">
+
+      {/* HEADER */}
+      <header className="flex flex-col items-center py-4 bg-[#e5b141] shadow-md relative">
+        <img src={Logo} alt="logo" className="h-20 mb-2" />
+
+        {/* LOGOUT BUTTON */}
+        <button
+          onClick={handleLogout}
+          className="absolute top-4 right-6 bg-[#b94419] text-[#dbd9d5] px-4 py-1 rounded-full hover:bg-[#199b74]"
+        >
+          Logout
+        </button>
+
+        <nav className="flex gap-6 text-[#56473a] font-semibold text-lg">
           {sections.map((sec) => (
-            <a key={sec.id} href={`#${sec.id}`} className="hover:text-[#199b74]">
+            <a key={sec.id} href={`#${sec.id}`}>
               {sec.title}
             </a>
           ))}

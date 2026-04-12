@@ -198,7 +198,7 @@ export default function Management1() {
         </div>
       </section>
 
-      {/* 🆕 Section: Order History & Analytics */}
+      {/*  Section: Order History & Analytics */}
       {/*<section id="analytics" className="px-10 py-8 bg-[#e5b141]/20">
         <h2 className="text-2xl font-bold text-[#56473a] mb-6 text-center">
           Order History & Analytics

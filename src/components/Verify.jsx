@@ -41,10 +41,10 @@ export default function Verify() {
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Order verified successfully!");
+        alert(" Order verified successfully!");
         setOrders((prev) => prev.filter((o) => o._id !== orderId)); // remove verified one
       } else {
-        alert(`❌ ${data.message}`);
+        alert(` ${data.message}`);
       }
     } catch (err) {
       console.error("Error verifying order:", err);
@@ -56,7 +56,7 @@ export default function Verify() {
       <h2 className="text-3xl font-bold text-[#56473a] mb-6">Verify Orders</h2>
 
       {orders.length === 0 ? (
-        <p className="text-gray-500">No pending orders found ✅</p>
+        <p className="text-gray-500">No pending orders found </p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {orders.map((order) => (
