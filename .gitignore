@@ -40,3 +40,4 @@ Thumbs.db
 # -----------------------------
 *.pem
 firebase-debug.log
+dump/
