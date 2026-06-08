@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/logofinalbg0.png";
 import LoginBG from "../assets/loginbgtemp.png";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import API from "../api";
+import API from "../api/api.js";
 
 export default function Login() {
   const location = useLocation();
