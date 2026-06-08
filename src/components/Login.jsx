@@ -15,6 +15,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    console.log("LOGIN CODE VERSION 2026");
+console.log("Using API:", process.env.REACT_APP_API_URL);
     setError(""); // reset error first
 
     if (!email || !password) {
