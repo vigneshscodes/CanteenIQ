@@ -109,7 +109,7 @@ export default function User1() {
         status: "Pending",
         counterno: Math.floor(Math.random() * 5) + 1,
         tokenno: tokenCounter++,
-        expectedDelvtime: new Date(Date.now() + 10 * 60000),
+        expectedDelvtime: new Date(Date.now() + 10 * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         otp: Math.floor(1000 + Math.random() * 9000).toString(),
       };
 
