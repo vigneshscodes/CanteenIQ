@@ -33,9 +33,6 @@ console.log("Using API:", process.env.REACT_APP_API_URL);
 
       const data = res.data;
 
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
 
       // Redirect based on role
       if (role === "management") {
