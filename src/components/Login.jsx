@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../assets/logofinalbg0.png";
 import LoginBG from "../assets/loginbgtemp.png";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import API from "../api/api.js";
 
 export default function Login() {
@@ -92,7 +91,7 @@ console.log("Using API:", process.env.REACT_APP_API_URL);
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-full bg-[#dbd9d5]/50 placeholder-[#56473a]/70 text-[#56473a] outline-none focus:ring-2 focus:ring-[#199b74] shadow-lg transition"
             />
-            {<button
+            {/*<button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#56473a]"
@@ -102,7 +101,7 @@ console.log("Using API:", process.env.REACT_APP_API_URL);
               ) : (
                 <EyeIcon className="h-5 w-5" />
               )}
-            </button>}
+            </button>*/}
             <button
               type="button"
               onClick={handleLogin}
