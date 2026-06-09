@@ -35,8 +35,6 @@ export default function User1() {
   const [showDineModal, setShowDineModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedType, setSelectedType] = useState("");
-
-  // ── NEW: ETA preview shown in payment modal ──
   const [estimatedWait, setEstimatedWait] = useState(null);
 
   // Prep time per item category in minutes
@@ -75,9 +73,15 @@ export default function User1() {
     );
   };
 
-  // Cart
+  // Cart — with stock validation
   const confirmAddToCart = () => {
     if (!selectedItem) return;
+
+    if (quantity > selectedItem.availableQty) {
+      alert(`Only ${selectedItem.availableQty} units available for ${selectedItem.name}`);
+      return;
+    }
+
     setCartItems([...cartItems, { ...selectedItem, quantity }]);
     setShowQtyModal(false);
   };
@@ -96,7 +100,7 @@ export default function User1() {
     setShowPaymentModal(true);
   };
 
-  // ── NEW: Calculate dynamic ETA from live queue count ──
+  // Calculate dynamic ETA from live queue count
   const calculateETA = async () => {
     try {
       const res = await fetch(
@@ -104,10 +108,8 @@ export default function User1() {
       );
       const { pendingCount } = await res.json();
 
-      // Wait from orders already in queue (avg 4 mins per pending order)
       const queueWait = pendingCount * prepTimeMap.default;
 
-      // Wait from items in THIS order based on category
       const itemsWait = cartItems.reduce((total, item) => {
         const category = item.category || "default";
         const prepMins = prepTimeMap[category] || prepTimeMap.default;
@@ -124,7 +126,7 @@ export default function User1() {
     }
   };
 
-  // ── CHANGED: fetch ETA before showing payment modal ──
+  // Fetch ETA before showing payment modal
   const handleDineSelectionWithETA = async (type) => {
     setSelectedType(type);
     setShowDineModal(false);
@@ -132,7 +134,7 @@ export default function User1() {
     setShowPaymentModal(true);
   };
 
-  // Place order — now uses dynamic ETA instead of hardcoded 10 mins
+  // Place order
   const confirmPayment = async () => {
     const total = cartItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -158,7 +160,6 @@ export default function User1() {
         status: "Pending",
         counterno: Math.floor(Math.random() * 5) + 1,
         tokenno: tokenCounter++,
-        // ── CHANGED: queue-based delivery time ──
         expectedDelvtime: new Date(Date.now() + waitMins * 60000),
       };
 
@@ -203,7 +204,7 @@ export default function User1() {
     }
   };
 
-  // Card UI — unchanged
+  // Card UI
   const Card = ({ item, buttonLabel, buttonColor, buttonHover, showPrice = true, onClick }) => (
     <div className="flex-shrink-0 bg-[#e5b141]/30 border border-[#b94419]/20 rounded-2xl p-4 w-52 text-center shadow-lg hover:scale-95 transition">
       {item.imgurl && (
@@ -383,7 +384,6 @@ export default function User1() {
                       {order.items?.length || 0} Items
                     </p>
                     <p className="text-[#56473a]/80 text-xs italic">{order.ordertype}</p>
-                    {/* ── NEW: show ETA time on order card ── */}
                     {order.expectedDelvtime && (
                       <p className="text-[#b94419] text-xs font-semibold mt-1">
                         ETA: {new Date(order.expectedDelvtime).toLocaleTimeString([], {
@@ -400,26 +400,61 @@ export default function User1() {
         </div>
       </section>
 
-      {/* Quantity Modal — unchanged */}
+      {/* Quantity Modal — with stock validation */}
       {showQtyModal && selectedItem && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[#dbd9d5] p-6 rounded-2xl shadow-lg text-center w-72 relative">
             <button onClick={() => setShowQtyModal(false)} className="absolute top-3 right-3 text-[#b94419]">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-xl font-bold text-[#56473a] mb-4">{selectedItem.name}</h3>
+            <h3 className="text-xl font-bold text-[#56473a] mb-1">{selectedItem.name}</h3>
+            {/* Stock indicator */}
+            <p className="text-xs text-[#56473a]/60 mb-4">
+              {selectedItem.availableQty} units available
+            </p>
             <p className="mb-4 text-[#56473a]/80">Select Quantity:</p>
-            <div className="flex justify-center items-center gap-4 mb-6">
-              <button onClick={() => setQuantity(qty => Math.max(1, qty - 1))} className="bg-[#b94419] hover:bg-[#199b74] text-[#dbd9d5] px-3 py-1 rounded-full">-</button>
+            <div className="flex justify-center items-center gap-4 mb-2">
+              {/* Minus button */}
+              <button
+                onClick={() => setQuantity(qty => Math.max(1, qty - 1))}
+                className="bg-[#b94419] hover:bg-[#199b74] text-[#dbd9d5] px-3 py-1 rounded-full"
+              >
+                -
+              </button>
               <span className="text-[#56473a] font-bold text-lg">{quantity}</span>
-              <button onClick={() => setQuantity(qty => qty + 1)} className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] px-3 py-1 rounded-full">+</button>
+              {/* Plus button — disabled at stock limit */}
+              <button
+                onClick={() => setQuantity(qty =>
+                  qty < selectedItem.availableQty ? qty + 1 : qty
+                )}
+                className={`px-3 py-1 rounded-full transition ${
+                  quantity >= selectedItem.availableQty
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5]"
+                }`}
+              >
+                +
+              </button>
             </div>
-            <button onClick={confirmAddToCart} className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] px-6 py-2 rounded-full transition">Add to Cart</button>
+            {/* Warning message when at max */}
+            {quantity >= selectedItem.availableQty && (
+              <p className="text-[#b94419] text-xs mb-4">
+                Maximum available quantity reached
+              </p>
+            )}
+            <div className="mt-4">
+              <button
+                onClick={confirmAddToCart}
+                className="bg-[#199b74] hover:bg-[#b94419] text-[#dbd9d5] px-6 py-2 rounded-full transition"
+              >
+                Add to Cart
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Dine-in / Parcel Modal — CHANGED to use handleDineSelectionWithETA */}
+      {/* Dine-in / Parcel Modal */}
       {showDineModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[#dbd9d5] p-8 rounded-2xl shadow-lg text-center w-80 relative">
@@ -435,7 +470,7 @@ export default function User1() {
         </div>
       )}
 
-      {/* Payment Modal — CHANGED: shows dynamic ETA before confirming */}
+      {/* Payment Modal — shows dynamic ETA */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[#dbd9d5] p-8 rounded-2xl shadow-lg text-center w-80 relative">
@@ -446,7 +481,6 @@ export default function User1() {
             <p className="text-[#56473a]/80 mb-2">
               You chose: <span className="font-semibold">{selectedType}</span>
             </p>
-            {/* ── NEW: ETA display card ── */}
             <div className="bg-[#e5b141]/30 rounded-xl px-4 py-3 mb-4">
               <p className="text-[#56473a] text-sm font-medium">Estimated Wait Time</p>
               <p className="text-[#b94419] text-2xl font-bold">
