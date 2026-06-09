@@ -3,18 +3,18 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
-import { fileURLToPath } from "url";  
+import { fileURLToPath } from "url";
 import Order from "./models/Order.js";
-
 
 dotenv.config();
 
 const app = express();
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));
 app.use(express.json());
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -64,7 +64,6 @@ const itemSchema = new mongoose.Schema({
 });
 const Item = mongoose.model("Item", itemSchema);
 
-
 // 💳 TRANSACTIONS COLLECTION
 const transactionSchema = new mongoose.Schema({
   orderID: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: true },
@@ -85,6 +84,7 @@ app.get("/", (req, res) => {
 });
 
 /* ---------------- USERS ---------------- */
+
 app.get("/api/users", async (req, res) => {
   try {
     const users = await User.find();
@@ -93,33 +93,24 @@ app.get("/api/users", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-/* ---------------- USERS ---------------- */
 
 // Create new user (Signup)
 app.post("/api/users", async (req, res) => {
   try {
     const { fullname, contactnumber, email, passwordhash } = req.body;
-
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User with this email already exists" });
     }
-
-    const newUser = new User({
-      fullname,
-      contactnumber,
-      email,
-      passwordhash, // In production, hash this with bcrypt
-    });
-
+    const newUser = new User({ fullname, contactnumber, email, passwordhash });
     const savedUser = await newUser.save();
     res.status(201).json(savedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-// Users login
+
+// User login
 app.post("/api/users/login", async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
@@ -129,7 +120,7 @@ app.post("/api/users/login", async (req, res) => {
   res.json({ message: "Login successful", user });
 });
 
-// Managers login
+// Manager login
 app.post("/api/managers/login", async (req, res) => {
   const { email, password } = req.body;
   const manager = await Manager.findOne({ email });
@@ -151,18 +142,16 @@ app.get("/api/items", async (req, res) => {
   }
 });
 
-// Add multiple items (for initial setup)
+// Add new item
 app.post("/api/items", async (req, res) => {
   try {
     const { name, price, availableQty, imgurl } = req.body;
-
     const newItem = new Item({
       name,
       price,
       availableQty: availableQty || 0,
       imgurl: imgurl || "/images/grapejuice.jpeg",
     });
-
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (error) {
@@ -186,11 +175,15 @@ app.put("/api/items/:id", async (req, res) => {
 });
 
 /* ---------------- ORDERS ---------------- */
+// ⚠️  ROUTE ORDER MATTERS IN EXPRESS:
+//     All specific named routes (/pending, /queue/count, /verify)
+//     MUST come before the dynamic /:id route.
+//     Otherwise Express matches /:id first and these routes never trigger.
+
 // Get orders for a specific user
 app.get("/api/orders", async (req, res) => {
   const userId = req.query.userId;
   if (!userId) return res.status(400).json({ message: "userId is required" });
-
   try {
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
     res.json(orders);
@@ -199,12 +192,12 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
+// Create new order
 app.post("/api/orders", async (req, res) => {
   try {
     const orderCount = await Order.countDocuments();
     const orderno = 1000 + orderCount + 1;
     const tokenno = orderCount + 1;
-
     const newOrder = new Order({ ...req.body, orderno, tokenno });
     await newOrder.save();
     res.status(201).json(newOrder);
@@ -212,14 +205,16 @@ app.post("/api/orders", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+// ✅ Get all pending orders (for manager verify page)
+// MUST be before /:id
 app.get("/api/orders/pending", async (req, res) => {
   try {
     const pendingOrders = await Order.find({ status: "Pending" })
       .populate("userId", "fullname contactnumber")
       .lean()
       .sort({ createdAt: -1 });
-
-    console.log("Pending Orders:", pendingOrders); // debug log
+    console.log("Pending Orders:", pendingOrders);
     res.json(Array.isArray(pendingOrders) ? pendingOrders : []);
   } catch (error) {
     console.error("Error fetching pending orders:", error);
@@ -227,10 +222,23 @@ app.get("/api/orders/pending", async (req, res) => {
   }
 });
 
-// Express + Mongoose
+// ✅ NEW: Queue count for dynamic ETA calculation
+// Returns number of currently active (Pending) orders
+// MUST be before /:id
+app.get("/api/orders/queue/count", async (req, res) => {
+  try {
+    const pendingCount = await Order.countDocuments({ status: "Pending" });
+    res.json({ pendingCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ Get single order by ID
+// Dynamic route — must come AFTER all specific named routes above
 app.get("/api/orders/:id", async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id); // _id from MongoDB
+    const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.json(order);
   } catch (err) {
@@ -238,7 +246,26 @@ app.get("/api/orders/:id", async (req, res) => {
   }
 });
 
+// ✅ Verify OTP and complete the order
+// MUST be before /:id — moved here from below
+app.post("/api/orders/verify", async (req, res) => {
+  try {
+    const { orderId, otp } = req.body;
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (order.otp !== otp)
+      return res.status(400).json({ message: "Invalid OTP" });
+    order.status = "Completed";
+    await order.save();
+    res.json({ message: "Order verified successfully", order });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 /* ---------------- TRANSACTIONS ---------------- */
+
 app.post("/api/transactions", async (req, res) => {
   try {
     const newTransaction = new Transaction({
@@ -252,38 +279,13 @@ app.post("/api/transactions", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-// ✅ Fetch all pending orders (for manager verify page)
 
+/* ---------------- ANALYTICS ---------------- */
 
-
-
-// ✅ Verify OTP and complete the order
-app.post("/api/orders/verify", async (req, res) => {
-  try {
-    const { orderId, otp } = req.body;
-
-    const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ message: "Order not found" });
-
-    if (order.otp !== otp)
-      return res.status(400).json({ message: "Invalid OTP" });
-
-    order.status = "Completed";
-    await order.save();
-
-    res.json({ message: "Order verified successfully", order });
-  } catch (error) {
-    console.error("Error verifying OTP:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
-// ================= ANALYTICS ROUTE =================
 app.get("/api/analytics", async (req, res) => {
   try {
-    // Get all completed orders
     const completedOrders = await Order.find().populate("items.itemid");
 
-    // Count total orders & revenue today
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
@@ -296,7 +298,6 @@ app.get("/api/analytics", async (req, res) => {
     const ordersToday = todaysOrders.length;
     const revenueToday = todaysOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-    // Aggregate sold counts per item
     const itemSales = {};
     completedOrders.forEach((order) => {
       order.items.forEach((itemObj) => {
@@ -307,7 +308,6 @@ app.get("/api/analytics", async (req, res) => {
       });
     });
 
-    // Get current available quantities from Items collection
     const items = await Item.find();
     const analyticsData = Object.entries(itemSales).map(([name, sold]) => {
       const item = items.find((i) => i.name === name);
@@ -320,10 +320,7 @@ app.get("/api/analytics", async (req, res) => {
 
     res.json({
       bestSellingData: analyticsData,
-      stats: {
-        ordersToday,
-        revenueToday,
-      },
+      stats: { ordersToday, revenueToday },
     });
   } catch (error) {
     console.error("Analytics fetch error:", error);
