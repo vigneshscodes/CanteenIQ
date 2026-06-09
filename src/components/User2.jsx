@@ -77,7 +77,10 @@ export default function User2() {
             Token No: <span className="text-[#b94419]">{order.tokenno}</span>
           </p>
           <p className="font-semibold text-[#56473a]">
-            Pick-up Time: <span className="text-[#199b74] font-bold">{new Date(order.expectedDelvtime).toLocaleTimeString()}</span>
+            Pick-up Time: <span className="text-[#199b74] font-bold">{new Date(order.expectedDelvtime).toLocaleTimeString([], {
+  hour: "2-digit",
+  minute: "2-digit",
+})}</span>
           </p>
           <p className="font-semibold text-[#56473a]">
             OTP: <span className="text-[#199b74] font-bold">{order.otp}</span>
