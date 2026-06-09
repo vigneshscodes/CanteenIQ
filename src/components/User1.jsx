@@ -119,7 +119,15 @@ export default function User1() {
         body: JSON.stringify(orderData),
       });
 
+      if (!res.ok) {
+        throw new Error("Failed to create order");
+      }
+
       const order = await res.json();
+
+      if (!order || !order._id) {
+        throw new Error("Order not saved");
+      }
 
       await Promise.all(
         cartItems.map((item) =>
