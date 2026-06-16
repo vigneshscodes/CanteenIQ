@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import jwt from "jsonwebtoken";
 import Order from "./models/Order.js";
 
 dotenv.config();
@@ -75,6 +76,29 @@ const transactionSchema = new mongoose.Schema({
 const Transaction = mongoose.model("Transaction", transactionSchema);
 
 /* =====================================================
+    JWT MIDDLEWARE
+===================================================== */
+
+// Verifies JWT token on protected routes
+// Usage: app.get("/api/protected-route", verifyToken, async (req, res) => { ... })
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+
+  if (!token) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, role } now available in all downstream route handlers
+    next();
+  } catch (err) {
+    return res.status(403).json({ message: "Invalid or expired token. Please log in again." });
+  }
+};
+
+/* =====================================================
    📡 API ROUTES
 ===================================================== */
 
@@ -110,24 +134,56 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-// User login
+// User login — returns JWT token
 app.post("/api/users/login", async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user || user.passwordhash !== password) {
-    return res.status(400).json({ message: "Invalid email or password" });
+  try {
+    const user = await User.findOne({ email });
+    if (!user || user.passwordhash !== password) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Generate JWT — expires in 7 days
+    const token = jwt.sign(
+      { id: user._id, role: "user" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Update last login timestamp
+    user.lastlogin = new Date();
+    await user.save();
+
+    res.json({ message: "Login successful", user, token });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-  res.json({ message: "Login successful", user });
 });
 
-// Manager login
+// Manager login — returns JWT token
 app.post("/api/managers/login", async (req, res) => {
   const { email, password } = req.body;
-  const manager = await Manager.findOne({ email });
-  if (!manager || manager.passwordhash !== password) {
-    return res.status(400).json({ message: "Invalid email or password" });
+  try {
+    const manager = await Manager.findOne({ email });
+    if (!manager || manager.passwordhash !== password) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Generate JWT — expires in 7 days
+    const token = jwt.sign(
+      { id: manager._id, role: "management" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Update last login timestamp
+    manager.lastlogin = new Date();
+    await manager.save();
+
+    res.json({ message: "Login successful", manager, token });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-  res.json({ message: "Login successful", manager });
 });
 
 /* ---------------- ITEMS ---------------- */
@@ -206,7 +262,7 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
-// ✅ Get all pending orders (for manager verify page)
+// Get all pending orders (for manager verify page)
 // MUST be before /:id
 app.get("/api/orders/pending", async (req, res) => {
   try {
@@ -222,8 +278,7 @@ app.get("/api/orders/pending", async (req, res) => {
   }
 });
 
-// ✅ NEW: Queue count for dynamic ETA calculation
-// Returns number of currently active (Pending) orders
+// Queue count for dynamic ETA calculation
 // MUST be before /:id
 app.get("/api/orders/queue/count", async (req, res) => {
   try {
@@ -234,7 +289,7 @@ app.get("/api/orders/queue/count", async (req, res) => {
   }
 });
 
-// ✅ Get single order by ID
+// Get single order by ID
 // Dynamic route — must come AFTER all specific named routes above
 app.get("/api/orders/:id", async (req, res) => {
   try {
@@ -246,8 +301,8 @@ app.get("/api/orders/:id", async (req, res) => {
   }
 });
 
-// ✅ Verify OTP and complete the order
-// MUST be before /:id — moved here from below
+// Verify OTP and complete the order
+// POST — not affected by /:id but kept here for grouping clarity
 app.post("/api/orders/verify", async (req, res) => {
   try {
     const { orderId, otp } = req.body;

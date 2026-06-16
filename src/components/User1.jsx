@@ -9,6 +9,9 @@ export default function User1() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
     localStorage.removeItem("user");
     navigate("/");
   };
